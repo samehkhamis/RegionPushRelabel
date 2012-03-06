@@ -1,0 +1,239 @@
+******************************************************************
+*                                                                *
+*    RegionPushRelabel - Version 1.03                            *
+*       A parallel out-of-core cache-oblivious FIFO push-relabel *
+*       algorithm for graphs with a regular structure.           *
+*    http://vision.csd.uwo.ca/code/                              *
+*                                                                *
+*    Sameh Khamis (sameh@umd.edu)                                *
+*    2010-2011                                                   *
+*                                                                *
+******************************************************************
+
+1. Introduction.
+
+This algorithm was developed by Sameh Khamis at the University of Western Ontario
+and extends the work presented in
+
+    "A Scalable Graph-Cut Algorithm for N-D Grids."
+    Andrew Delong and Yuri Boykov.
+    In IEEE Computer Vision and Pattern Recognition (CVPR), 
+    June 2008
+
+If you use this software for research purposes, you should cite the aforementioned
+paper in any resulting publication.
+
+This software was tested on Windows using Visual Studio 2008 and on GNU/Linux using GCC 4.4.1.
+The Boost C++ libraries are required and versions 1.39 and 1.43 were tested.
+To build Boost on Windows, please refer to:
+http://www.boost.org/doc/libs/1_38_0/more/getting_started/windows.html
+
+
+****************************************************************************************************
+
+2. License & disclaimer.
+
+    Copyright 2010-2011 Sameh Khamis (sameh@umd.edu).
+    This software can be used for research purposes only.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+****************************************************************************************************
+
+3. Revision history
+
+v1.03 - another minor bug fix
+v1.02 - minor bug fix (thanks to Alexander Shekhovtsov)
+v1.01 - compiles with GCC
+v1.00 - initial release
+
+
+****************************************************************************************************
+
+4. Example usage.
+
+This section shows how to use the library to compute
+a minimum cut on the following graph:
+
+                   SOURCE                               Graph
+                   /                                 Regularity
+                  \/ 100
+                (0) --5-> (1) --1-> (2) --5-> (3)            /
+                / 5       / 5      / 5      5 /        -- (Node) --
+               \/        \/       \/         \/            /
+             (4) --5-> (5) --2-> (6) --5-> (7)
+             / 5       / 5       / 5      5 /
+            \/        \/        \/         \/
+          (8)       (9)      (10) --5-> (11)
+          / 5       / 5       / 5      5 /
+         \/        \/        \/         \/
+       (12) -5-> (13) -3-> (14) -5-> (15)
+                                     /
+                                    \/ 100
+                                  SINK
+
+Notes: the library is designed to handle graphs with regular structure.
+The four edges shown repeat for every node, including boundary nodes
+(e.g, node 3 is connected to node 6, etc.). The repeating structure is called
+a cell. Each node in the cell is described by a cell index. The above cell
+has a single node. The source and the sink are connected to all the graph nodes.
+Building the graph, any omitted edges are assumed to have zero capacities.
+
+For more details refer to:
+http://vision.csd.uwo.ca/viki/Graph_regularity_DIMACS_conventions
+
+/////////////////////////////////////////////////////////////////////////////////
+
+#include <iostream>
+using namespace std;
+
+#include "RegionPushRelabel/RegionPushRelabel.h"
+
+typedef Array<                 // Each cell has 1 node
+	Arc<0, 0, Offsets<1, 0> >,  // From node 0 in the cell to node 0 in the cell on the right
+	Arc<0, 0, Offsets<-1, 0> >, // From node 0 in the cell to node 0 in the cell on the left
+	Arc<0, 0, Offsets<0, 1> >,  // From node 0 in the cell to node 0 in the cell below
+	Arc<0, 0, Offsets<0, -1> >  // From node 0 in the cell to node 0 in the cell above
+> FourConnected;
+
+typedef RegionPushRelabel<
+	short, long,               // Capacity Type, Flow Type
+	Layout<
+		FourConnected,         // Layout is four-connected
+		Dimensions<4, 4>,      // The graph is 4x4 cells
+		BlockDimensions<2, 2>  // Divide the graph into blocks of 2x2 cells each
+	>,
+	ThreadCount<2>             // Use two threads
+> RegularGraph;
+
+int main()
+{
+	RegularGraph *g = new RegularGraph();
+	
+	g->add_terminal_weights(0, 100, 0);  // Node 0 is connected to source
+	g->add_terminal_weights(15, 0, 100); // and node 15 to sink
+	
+	g->add_edge(0, 1, 5, 0);             // Edge capacities from node 0 to 1 and vice versa
+	g->add_edge(0, 4, 5, 0);             // etc.
+	g->add_edge(1, 2, 1, 0);
+	g->add_edge(1, 5, 5, 0);
+	g->add_edge(2, 3, 5, 0);
+	g->add_edge(2, 6, 5, 0);
+	g->add_edge(3, 7, 5, 0);
+	g->add_edge(4, 5, 5, 0);
+	g->add_edge(4, 8, 5, 0);
+	g->add_edge(5, 6, 2, 0);
+	g->add_edge(5, 9, 5, 0);
+	g->add_edge(6, 7, 5, 0);
+	g->add_edge(6, 10, 5, 0);
+	g->add_edge(7, 11, 5, 0);
+	g->add_edge(8, 12, 5, 0);
+	g->add_edge(9, 13, 5, 0);
+	g->add_edge(10, 11, 5, 0);
+	g->add_edge(10, 14, 5, 0);
+	g->add_edge(11, 15, 5, 0);
+	g->add_edge(12, 13, 5, 0);
+	g->add_edge(13, 14, 3, 0);
+	g->add_edge(14, 15, 5, 0);
+	
+	g->compute_maxflow();
+	cout << "Flow = " << g->get_flow() << endl;
+	for (int i = 0; i < 16; i++)
+		cout << "Segment of node " << i << " = " << g->get_segment(i) << endl;
+	
+	delete g;
+	return 0;
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+
+The bundled DimacsReader template class can also be used to compute a minimum
+cut on graphs in the DIMACS format. For example, to read in the graph above
+from a DIMACS file, you need to first include "DimacsReader.h".
+
+#include "RegionPushRelabel/DimacsReader.h"
+
+Then you need to define your graph class as shown above, and create a DimacsReader
+template class with your graph class as the template parameter.
+
+typedef DimacsReader<RegularGraph> Reader;
+
+And finally you can use your graph to read in the graph from a file.
+
+Reader reader("graph.max");
+reader.parse();
+RegularGraph* g = reader.get_solver();
+g->compute_maxflow();
+
+Note: you should NOT delete the RegularGraph object returned by get_solver.
+
+
+****************************************************************************************************
+
+5. Additional notes.
+
+= The Layout class requires 3 parameters: the offset array, the graph dimensions, and the block dimensions.
+
+*** The offset array is a Boost MPL vector. For arrays with 20 arcs or less, you can use the type Array as shown
+in the example above. If you need more than 20 arcs, you should replace Array with mpl::vectorN, with N being
+the number of arcs, and include the appropriate header file. For example, vector30.hpp contains mpl::vector24.
+
+*** The graph dimensions can be specified using the class Dimensions. For example, the 2D graph shown above is
+described by its width and height.
+
+*** The block dimensions has the same format as the graph dimensions, but uses the class BlockDimensions. Two
+limitations exist on the block dimensions:
+1. each block dimension must divide evenly the corresponding graph dimensions, which implies that all blocks,
+including the last one, are of the same size exactly.
+2. each block dimension must be greater than the largest absolute edge offset in that dimension. This implies
+that the majority of nodes in a block will only be connected to nodes in the same block, improving the locality
+and allowing per-block processing.
+
+
+= The RegionPushRelabel class requires 2 positional parameters, capacity type and flow type, followed by
+7 keyword (unordered) parameters, 1 of which is required (the Layout class), and the rest are optional.
+
+The optional parameters are:
+
+*** ThreadCount is the number of worker threads to run. With smaller block sizes, more threads will
+likely increase the performance.
+
+*** MaxBlocksPerRegion is the maximum number of blocks each thread will work on. A good rule of thumb
+is to set it to the size of the node neighborhood. Having a number of blocks per thread smaller than
+the size of the node neighborhood can cause a thread to fail to discharge the flow of a block completely
+in one go, increasing the time needed to finish. Having a number of blocks per thread significantly larger
+than the size of the node neighborhood can cause threads to starve waiting for work, which affects the
+performance gain of having more than one thread.
+
+*** DischargesPerBlock is the number of discharge operations performed on each block, before checking
+for gaps to relabel. A good rule of thumb is to set it to a small multiple of the number of nodes in
+a block. If this number is set too low, a thread will check for gaps too often and take more time
+to finish. If this number is set too high, performance gains that can be achieved by gap relabeling
+nodes will be affected.
+
+*** BucketDensity is the number of labels to use in every label bucket for gap relabeling. This is
+for systems with limited memory, otherwise it should be 1. For systems with limited memory, setting
+this number to an integer greater than 1 will cause gap relabeling to occur less often since nodes
+of different labels will be aggregated into a single bucket.
+
+*** BlocksPerMemoryPage is the number of blocks in each memory block. This is also for systems with
+limited memory, and can be tweaked to reduce the memory footprint of the algorithm. If the entire
+graph can fit in memory, the parameter would not affect the performance, otherwise, trial and error
+is best to find a good fit.
+
+*** GlobalUpdateFrequency is the frequency of the global update event. Trial and error might be
+necessary to find a good parameter value for a graph.
+
+
+****************************************************************************************************
