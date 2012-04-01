@@ -20,8 +20,8 @@ and extends the work presented in
     In IEEE Computer Vision and Pattern Recognition (CVPR), 
     June 2008
 
-If you use this software for research purposes, you should cite the aforementioned
-paper in any resulting publication.
+If you use this software for non-commercial research purposes, you should cite
+the aforementioned paper in any resulting publication.
 
 This software was tested on Windows using Visual Studio 2008 and on GNU/Linux using GCC 4.4.1.
 The Boost C++ libraries are required and versions 1.39 and 1.43 were tested.
@@ -34,7 +34,7 @@ http://www.boost.org/doc/libs/1_38_0/more/getting_started/windows.html
 2. License & disclaimer.
 
     Copyright 2010-2011 Sameh Khamis (sameh@umd.edu).
-    This software can be used for research purposes only.
+    This software can be used under GPLv2 for non-commercial research purposes only.
 
     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
     "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -53,6 +53,7 @@ http://www.boost.org/doc/libs/1_38_0/more/getting_started/windows.html
 
 3. Revision history
 
+v1.04 - segmentation bug fix (thanks to Jan Ruegg)
 v1.03 - another minor bug fix
 v1.02 - minor bug fix (thanks to Alexander Shekhovtsov)
 v1.01 - compiles with GCC
