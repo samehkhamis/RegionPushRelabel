@@ -208,7 +208,7 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::compute_m
 		if (active_count[i] > 0)
 			active->push_back(i);
 
-	// Creates (THREAD_COUNT - 1) threads and joins in the action
+	// Creates (THREAD_COUNT - 1) threads and joins in on the action
 	thread_group tgrp;
 
 	for (char i = 1; i < THREAD_COUNT; i++)

@@ -257,7 +257,7 @@ INLINE int RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::get
 	size_t bi, ni;
 	Layout::get_node_block_index(id, bi, ni);
 	Node& node = load_block(bi)->nodes[ni];
-	int segment = ((node.distance) < (Layout::NODE_COUNT)) ? 1 : 0;
+	int segment = ((node.distance) < (gaps[bi])) ? 1 : 0;
 	unload_block(bi);
 	return segment;
 }
