@@ -8,6 +8,9 @@
 #ifndef _LAYOUT
 #define _LAYOUT
 
+#define _HAS_ITERATOR_DEBUGGING 0
+#define _SECURE_SCL 0
+
 #ifdef _MSC_VER
   #define INLINE __forceinline	// VC++
 #else

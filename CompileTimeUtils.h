@@ -7,6 +7,8 @@
 /////////////////////////////////////////////////////////////////////////////
 #ifndef _COMPILE_TIME_UTILS
 #define _COMPILE_TIME_UTILS
+#define BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS
+#define BOOST_MPL_LIMIT_VECTOR_SIZE 50
 
 #include <boost/mpl/arithmetic.hpp>
 #include <boost/mpl/at.hpp>
@@ -25,6 +27,7 @@
 #include <boost/mpl/unique.hpp>
 #include <boost/mpl/equal.hpp>
 #include <boost/mpl/placeholders.hpp>
+#include <boost/mpl/vector/vector50.hpp>
 namespace mp = boost::mpl;
 
 // Arc and helpers
@@ -171,38 +174,42 @@ class OffsetsTag {};
 
 template <ptrdiff_t C1 = LONG_MAX, ptrdiff_t C2 = LONG_MAX, ptrdiff_t C3 = LONG_MAX, ptrdiff_t C4 = LONG_MAX,
 	ptrdiff_t C5 = LONG_MAX, ptrdiff_t C6 = LONG_MAX, ptrdiff_t C7 = LONG_MAX, ptrdiff_t C8 = LONG_MAX,
-	ptrdiff_t C9 = LONG_MAX, ptrdiff_t C10 = LONG_MAX, ptrdiff_t C11 = LONG_MAX, ptrdiff_t C12 = LONG_MAX,
-	ptrdiff_t C13 = LONG_MAX, ptrdiff_t C14 = LONG_MAX, ptrdiff_t C15 = LONG_MAX, ptrdiff_t C16 = LONG_MAX,
-	ptrdiff_t C17 = LONG_MAX, ptrdiff_t C18 = LONG_MAX, ptrdiff_t C19 = LONG_MAX, ptrdiff_t C20 = LONG_MAX>
+	ptrdiff_t C9 = LONG_MAX, ptrdiff_t C10 = LONG_MAX>
 class Offsets :
-	public mp::vector_c<ptrdiff_t, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14, C15, C16, C17, C18, C19, C20>, public OffsetsTag {};
+	public mp::vector_c<ptrdiff_t, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10>, public OffsetsTag {};
 
 class DimensionsTag {};
 
 template <ptrdiff_t C1 = LONG_MAX, ptrdiff_t C2 = LONG_MAX, ptrdiff_t C3 = LONG_MAX, ptrdiff_t C4 = LONG_MAX,
 	ptrdiff_t C5 = LONG_MAX, ptrdiff_t C6 = LONG_MAX, ptrdiff_t C7 = LONG_MAX, ptrdiff_t C8 = LONG_MAX,
-	ptrdiff_t C9 = LONG_MAX, ptrdiff_t C10 = LONG_MAX, ptrdiff_t C11 = LONG_MAX, ptrdiff_t C12 = LONG_MAX,
-	ptrdiff_t C13 = LONG_MAX, ptrdiff_t C14 = LONG_MAX, ptrdiff_t C15 = LONG_MAX, ptrdiff_t C16 = LONG_MAX,
-	ptrdiff_t C17 = LONG_MAX, ptrdiff_t C18 = LONG_MAX, ptrdiff_t C19 = LONG_MAX, ptrdiff_t C20 = LONG_MAX>
+	ptrdiff_t C9 = LONG_MAX, ptrdiff_t C10 = LONG_MAX>
 class Dimensions :
-	public mp::vector_c<ptrdiff_t, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14, C15, C16, C17, C18, C19, C20>, public DimensionsTag {};
+	public mp::vector_c<ptrdiff_t, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10>, public DimensionsTag {};
 
 class BlockDimensionsTag {};
 
 template <ptrdiff_t C1 = LONG_MAX, ptrdiff_t C2 = LONG_MAX, ptrdiff_t C3 = LONG_MAX, ptrdiff_t C4 = LONG_MAX,
 	ptrdiff_t C5 = LONG_MAX, ptrdiff_t C6 = LONG_MAX, ptrdiff_t C7 = LONG_MAX, ptrdiff_t C8 = LONG_MAX,
-	ptrdiff_t C9 = LONG_MAX, ptrdiff_t C10 = LONG_MAX, ptrdiff_t C11 = LONG_MAX, ptrdiff_t C12 = LONG_MAX,
-	ptrdiff_t C13 = LONG_MAX, ptrdiff_t C14 = LONG_MAX, ptrdiff_t C15 = LONG_MAX, ptrdiff_t C16 = LONG_MAX,
-	ptrdiff_t C17 = LONG_MAX, ptrdiff_t C18 = LONG_MAX, ptrdiff_t C19 = LONG_MAX, ptrdiff_t C20 = LONG_MAX>
+	ptrdiff_t C9 = LONG_MAX, ptrdiff_t C10 = LONG_MAX>
 class BlockDimensions :
-	public mp::vector_c<ptrdiff_t, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14, C15, C16, C17, C18, C19, C20>, public BlockDimensionsTag {};
+	public mp::vector_c<ptrdiff_t, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10>, public BlockDimensionsTag {};
 
 template <typename C1 = mp::na, typename C2 = mp::na, typename C3 = mp::na, typename C4 = mp::na,
 	typename C5 = mp::na, typename C6 = mp::na, typename C7 = mp::na, typename C8 = mp::na,
 	typename C9 = mp::na, typename C10 = mp::na, typename C11 = mp::na, typename C12 = mp::na,
 	typename C13 = mp::na, typename C14 = mp::na, typename C15 = mp::na, typename C16 = mp::na,
-	typename C17 = mp::na, typename C18 = mp::na, typename C19 = mp::na, typename C20 = mp::na>
+	typename C17 = mp::na, typename C18 = mp::na, typename C19 = mp::na, typename C20 = mp::na,
+	typename C21 = mp::na, typename C22 = mp::na, typename C23 = mp::na, typename C24 = mp::na,
+	typename C25 = mp::na, typename C26 = mp::na, typename C27 = mp::na, typename C28 = mp::na,
+	typename C29 = mp::na, typename C30 = mp::na, typename C31 = mp::na, typename C32 = mp::na,
+	typename C33 = mp::na, typename C34 = mp::na, typename C35 = mp::na, typename C36 = mp::na,
+	typename C37 = mp::na, typename C38 = mp::na, typename C39 = mp::na, typename C40 = mp::na,
+	typename C41 = mp::na, typename C42 = mp::na, typename C43 = mp::na, typename C44 = mp::na,
+	typename C45 = mp::na, typename C46 = mp::na, typename C47 = mp::na, typename C48 = mp::na,
+	typename C49 = mp::na, typename C50 = mp::na>
 class Array :
-	public mp::vector<C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14, C15, C16, C17, C18, C19, C20> {};
+	public mp::vector<C1, C2, C3, C4, C5, C6, C7, C8, C9, C10, C11, C12, C13, C14, C15, C16, C17, C18, C19, C20,
+		C21, C22, C23, C24, C25, C26, C27, C28, C29, C30, C31, C32, C33, C34, C35, C36, C37, C38, C39, C40,
+		C41, C42, C43, C44, C45, C46, C47, C48, C49, C50> {};
 
 #endif
