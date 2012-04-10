@@ -13,12 +13,12 @@ class DoublyLinkedArray
 {
 private:
 	typedef pair<Type, Type> Node;
-	unsigned first, last;
+	Type first, last;
 	Node *nodes;
-	unsigned size, count;
+	Type size, count;
 
 public:
-	DoublyLinkedArray(unsigned size)
+	DoublyLinkedArray(Type size)
 	{
 		this->size = size;
 		nodes = new Node[size];
@@ -59,9 +59,9 @@ public:
 		count++;
 	}
 
-	const Type& pop_front()
+	Type pop_front()
 	{
-		unsigned old_first = first;
+		Type old_first = first;
 		first = nodes[first].second;
 		nodes[old_first].second = size;
 
@@ -74,7 +74,7 @@ public:
 		return old_first;
 	}
 
-	void remove(unsigned id)
+	void remove(Type id)
 	{
 		if (id == first)
 			pop_front();

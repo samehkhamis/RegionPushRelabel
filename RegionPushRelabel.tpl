@@ -18,44 +18,45 @@
 //////////////////////
 
 template <typename CapType, typename FlowType, typename A0, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6>
-RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::RegionPushRelabel(size_t unused_nnodes, size_t unused_nedges) // Parameters are not used
+RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::RegionPushRelabel(long dimensions[])
 {
 	// Initialize layout offsets
-	Layout::init();
+	layout = new Layout(dimensions);
+	bucket_count = (layout->node_count + BUCKET_DENSITY - 1) >> BUCKET_DENSITY_BITS;
 
 	// Blocks
-	memory = new MemoryManager(Layout::block_count * BLOCK_SIZE,
+	memory = new MemoryManager(layout->block_count * BLOCK_SIZE,
 		BLOCKS_PER_MEMORY_PAGE * BLOCK_SIZE,
 		THREAD_COUNT * MAX_BLOCKS_PER_REGION);
 
-	for (size_t i = 0; i < Layout::block_count; i++)
+	for (size_t i = 0; i < layout->block_count; i++)
 		initialize_block(i);
 
 	// Shared data
-	block_owner = new char[Layout::block_count];
-	block_location_index = new unsigned short[Layout::block_count];
+	block_owner = new char[layout->block_count];
+	block_location_index = new unsigned short[layout->block_count];
 	typename Layout::Coord block_coord;
-	for (size_t i = 0; i < Layout::block_count; i++)
+	for (size_t i = 0; i < layout->block_count; i++)
 	{
 		block_owner[i] = -1;
-		Layout::get_block_coord(i, block_coord);
-		block_location_index[i] = Layout::get_block_location_index(block_coord);
+		layout->get_block_coord(i, block_coord);
+		block_location_index[i] = layout->get_block_location_index(block_coord);
 	}
 
-	gaps = new unsigned[Layout::block_count];
-	for (size_t i = 0; i < Layout::block_count; i++)
-		gaps[i] = Layout::NODE_COUNT;
+	gaps = new unsigned[layout->block_count];
+	for (size_t i = 0; i < layout->block_count; i++)
+		gaps[i] = layout->node_count;
 
-	active_count = new size_t[Layout::block_count];
-	for (size_t i = 0; i < Layout::block_count; i++)
+	active_count = new size_t[layout->block_count];
+	for (size_t i = 0; i < layout->block_count; i++)
 		active_count[i] = 0;
 
-	label_counts = new size_t[BUCKET_COUNT];
-	label_counts[0] = Layout::NODE_COUNT;
-	for (size_t b = 1; b < BUCKET_COUNT; b++)
+	label_counts = new size_t[bucket_count];
+	label_counts[0] = layout->node_count;
+	for (size_t b = 1; b < bucket_count; b++)
 		label_counts[b] = 0;
 
-	active = new DoublyLinkedArray<size_t>(Layout::block_count);
+	active = new DoublyLinkedArray<size_t>(layout->block_count);
 
 	busy_count = THREAD_COUNT;
 	gap_count = 0;
@@ -103,7 +104,7 @@ INLINE void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::in
 	typename Layout::Coord node_coord;
 	for (size_t j = 0; j < Layout::NODES_PER_BLOCK; j++)
 	{
-		Layout::get_node_coord(i, j, node_coord);
+		layout->get_node_coord(i, j, node_coord);
 
 		node->distance = 0;
 		node->preflow = 0;
@@ -111,9 +112,9 @@ INLINE void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::in
 			node->residual[k] = 0;
 		node->cur_edge = 0;
 		node->cell_index = node_coord[0];
-		node->boundary = Layout::get_boundary_membership(node_coord);
+		node->boundary = layout->get_boundary_membership(node_coord);
 		node->relabel = false;
-		node->location_index = Layout::get_node_location_index(node_coord);
+		node->location_index = layout->get_node_location_index(node_coord);
 
 		node++;
 	}
@@ -139,8 +140,8 @@ template <typename CapType, typename FlowType, typename A0, typename A1, typenam
 INLINE void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::add_edge(size_t node_i, size_t node_j, CapType cap, CapType rev_cap)
 {
 	size_t block_i, node_subi, block_j, node_subj;
-	Layout::get_node_block_index(node_i, block_i, node_subi);
-	Layout::get_node_block_index(node_j, block_j, node_subj);
+	layout->get_node_block_index(node_i, block_i, node_subi);
+	layout->get_node_block_index(node_j, block_j, node_subj);
 
 	Block* block_from = load_block(block_i);
 	Block* block_to = load_block(block_j);
@@ -149,9 +150,9 @@ INLINE void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::ad
 	Node& node_to = block_to->nodes[node_subj];
 
 	ptrdiff_t shift = node_subj - node_subi;
-	ptrdiff_t* offset = Layout::get_node_shift_vector(node_from.cell_index, node_from.location_index);
+	ptrdiff_t* offset = layout->get_node_shift_vector(node_from.cell_index, node_from.location_index);
 	ptrdiff_t idx;
-	ptrdiff_t nedges = Layout::get_edge_count(node_from.cell_index);
+	ptrdiff_t nedges = layout->get_edge_count(node_from.cell_index);
 
 	for (idx = 0; idx < nedges; idx++, offset++)
 		if (*offset == shift)
@@ -160,13 +161,13 @@ INLINE void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::ad
 	if (idx != nedges)
 	{
 		node_from.residual[idx] += cap;
-		idx = Layout::get_sister_edges(node_from.cell_index)[idx];
+		idx = layout->get_sister_edges(node_from.cell_index)[idx];
 		if (idx != -1) node_to.residual[idx] += rev_cap;
 	}
 	else
 	{
 		// Unexpected: non-grid edge - will be ignored!
-		cout << "Non-grid edge!" << endl;
+		cout << "Warning: non-grid edge detected! Layout definition problem?" << endl;
 	}
 
 	unload_block(block_i);
@@ -177,7 +178,7 @@ template <typename CapType, typename FlowType, typename A0, typename A1, typenam
 INLINE void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::add_terminal_weights(size_t node_id, FlowType src_cap, FlowType snk_cap)
 {
 	size_t block_id, node_subid;
-	Layout::get_node_block_index(node_id, block_id, node_subid);
+	layout->get_node_block_index(node_id, block_id, node_subid);
 
 	Block* block = load_block(block_id);
 	Node& node = block->nodes[node_subid];
@@ -204,7 +205,7 @@ template <typename CapType, typename FlowType, typename A0, typename A1, typenam
 void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::compute_maxflow()
 {
 	// Set up the active list
-	for (size_t i = 0; i < Layout::block_count; i++)
+	for (size_t i = 0; i < layout->block_count; i++)
 		if (active_count[i] > 0)
 			active->push_back(i);
 
@@ -251,12 +252,12 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::update_re
 		block_id = active->pop_front();
 
 		unsigned e;
-		for (e = 0; e < Layout::block_edge_count; e++)
+		for (e = 0; e < layout->block_edge_count; e++)
 		{
-			if (block_owner[block_id + Layout::get_block_shift_vector(block_location_index[block_id])[e]] != -1)
+			if (block_owner[block_id + layout->get_block_shift_vector(block_location_index[block_id])[e]] != -1)
 				break;
 		}
-		if (e == Layout::block_edge_count)
+		if (e == layout->block_edge_count)
 			break;
 		
 		active->push_back(block_id);
@@ -286,10 +287,10 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::update_re
 
 	while (true)
 	{
-		if (edge_count < Layout::block_edge_count)
+		if (edge_count < layout->block_edge_count)
 		{
 			// Calculate the new block id using the absolute offset lookup table
-			block_id = cur_block->id + Layout::get_block_shift_vector(block_location_index[cur_block->id])[cur_block->cur_edge];
+			block_id = cur_block->id + layout->get_block_shift_vector(block_location_index[cur_block->id])[cur_block->cur_edge];
 
 			// If we don't have enough blocks and this block is not owned by another thread, grab it
 			if (worker.region_size < MAX_BLOCKS_PER_REGION &&
@@ -326,7 +327,7 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::update_re
 
 			edge_count++;
 			cur_block->cur_edge++;
-			if (cur_block->cur_edge == Layout::block_edge_count)
+			if (cur_block->cur_edge == layout->block_edge_count)
 				cur_block->cur_edge = 0;
 		}
 		else
@@ -335,11 +336,11 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::update_re
 			ptrdiff_t* node_mask;
 			for (unsigned c = 0; c < Layout::NODES_PER_CELL; c++)
 			{
-				for (size_t l = 0; l < Layout::location_counts[c]; l++)
+				for (size_t l = 0; l < layout->location_counts[c]; l++)
 				{
-					node_mask = Layout::get_node_edge_mask(c, l);
+					node_mask = layout->get_node_edge_mask(c, l);
 					worker.boundary_mask[region_index][c][l] = 0;
-					for (size_t be = 0; be < Layout::block_edge_count; be++)
+					for (size_t be = 0; be < layout->block_edge_count; be++)
 					{
 						if (block_mask & (1 << be))
 							worker.boundary_mask[region_index][c][l] |= 1 << node_mask[be];
@@ -381,7 +382,7 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::update_da
 	while (current < worker.relabels_iter)
 	{
 		bucket = current->second >> BUCKET_DENSITY_BITS;
-		if (bucket < BUCKET_COUNT)
+		if (bucket < bucket_count)
 		{
 			label_counts[bucket]++;
 
@@ -474,7 +475,7 @@ template <typename CapType, typename FlowType, typename A0, typename A1, typenam
 void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::update_block_gaps()
 {
 	// Find the minimum gap
-	size_t minimum_gap = BUCKET_COUNT;
+	size_t minimum_gap = bucket_count;
 
 	for (vector<size_t>::iterator gap = possible_gaps.begin(); gap != possible_gaps.end(); gap++)
 	{
@@ -483,12 +484,12 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::update_bl
 	}
 
 	// Handle the gap
-	if (minimum_gap < BUCKET_COUNT)
+	if (minimum_gap < bucket_count)
 	{
 		// Reset the minimum gap that each block has to handle
 		// Blocks should then remove nodes that are beyond the gap in parallel
 		size_t gap_distance = minimum_gap << BUCKET_DENSITY_BITS;
-		for (size_t i = 0; i < Layout::block_count; i++)
+		for (size_t i = 0; i < layout->block_count; i++)
 		{
 			if (gaps[i] > gap_distance)
 				gaps[i] = gap_distance;
@@ -522,12 +523,12 @@ RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::RegionWorker::
 
 	// Neighbors initial size
 	for (size_t i = 0; i < MAX_BLOCKS_PER_REGION; i++)
-		neighbors[i].resize(Layout::block_edge_count);
+		neighbors[i].resize(graph->layout->block_edge_count);
 
 	// Boundary mask initial size
 	for (unsigned i = 0; i < MAX_BLOCKS_PER_REGION; i++)
 		for (unsigned c = 0; c < Layout::NODES_PER_CELL; c++)
-			boundary_mask[i][c].resize(Layout::location_counts[c]);
+			boundary_mask[i][c].resize(graph->layout->location_counts[c]);
 }
 
 template <typename CapType, typename FlowType, typename A0, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6>
@@ -540,7 +541,7 @@ template <typename CapType, typename FlowType, typename A0, typename A1, typenam
 INLINE void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::RegionWorker::find_next_relabel_distance(size_t& distance, deque<Node*>* bucket, priority_queue<Node*, deque<Node*>, NodeCompare>* fixed)
 {
 	// Find the next distance to track by peeking into the bucket
-	size_t d = Layout::NODE_COUNT;
+	size_t d = graph->layout->node_count;
 	for (unsigned i = 0; i < region_size; i++)
 	{
 		if (!bucket[i].empty())
@@ -552,7 +553,7 @@ INLINE void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::Re
 
 	// If the bucket is empty, find the next distance to use from the set of fixed nodes
 	Node *node;
-	if (d == Layout::NODE_COUNT)
+	if (d == graph->layout->node_count)
 	{
 		for (unsigned i = 0; i < region_size; i++)
 		{
@@ -567,7 +568,7 @@ INLINE void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::Re
 
 	// If none found, we are done
 	distance = d;
-	if (d == Layout::NODE_COUNT)
+	if (d == graph->layout->node_count)
 		return;
 
 	// Otherwise, collect all nodes at this distance into the bucket
@@ -654,10 +655,10 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::RegionWor
 				node = *node_iter;
 
 				node_id = node - block->nodes;
-				offset = Layout::get_node_shift_vector(node->cell_index, node->location_index);
-				sister = Layout::get_sister_edges(node->cell_index);
-				block_edge = Layout::get_block_edge(node->cell_index, node->location_index);
-				nedges = Layout::get_edge_count(node->cell_index);
+				offset = graph->layout->get_node_shift_vector(node->cell_index, node->location_index);
+				sister = graph->layout->get_sister_edges(node->cell_index);
+				block_edge = graph->layout->get_block_edge(node->cell_index, node->location_index);
+				nedges = graph->layout->get_edge_count(node->cell_index);
 
 				for (size_t e = 0; e < nedges; e++)
 				{
@@ -721,10 +722,10 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::RegionWor
 			if (node->relabel)
 			{
 				r->first = node->distance;
-				r->second = Layout::NODE_COUNT;
+				r->second = graph->layout->node_count;
 				r++;
 
-				node->distance = Layout::NODE_COUNT;
+				node->distance = graph->layout->node_count;
 				node->relabel = false;
 			}
 			node++;
@@ -734,7 +735,7 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::RegionWor
 		ActiveList& list = block->active;
 		for (iter = block->cur_node; iter != list.end();)
 		{
-			if (block->nodes[list.get(iter)].distance == Layout::NODE_COUNT)
+			if (block->nodes[list.get(iter)].distance == graph->layout->node_count)
 				list.remove(iter);
 			else
 				iter++;
@@ -748,12 +749,12 @@ INLINE bool RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::Re
 	Node* neighbor;
 	Block *neighbor_block;
 
-	size_t min_label = Layout::NODE_COUNT - 1;
+	size_t min_label = graph->layout->node_count - 1;
 	size_t min_edge = 0;
 
-	ptrdiff_t *offset = Layout::get_node_shift_vector(node->cell_index, node->location_index);
+	ptrdiff_t *offset = graph->layout->get_node_shift_vector(node->cell_index, node->location_index);
 	CapType *residual = node->residual;
-	ptrdiff_t *block_edge = Layout::get_block_edge(node->cell_index, node->location_index);
+	ptrdiff_t *block_edge = graph->layout->get_block_edge(node->cell_index, node->location_index);
 
 	// Since we're checking for residual before anything, we can use the faster Layout::NODE_EDGE_COUNT
 	for (size_t e = 0; e < Layout::NODE_EDGE_COUNT; e++)
@@ -819,9 +820,9 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::RegionWor
 		// Push to neighbors
 		old_distance = node->distance;
 		residual = node->residual + node->cur_edge;
-		offset = Layout::get_node_shift_vector(node->cell_index, node->location_index) + node->cur_edge;
-		sister = Layout::get_sister_edges(node->cell_index) + node->cur_edge;
-		block_edge = Layout::get_block_edge(node->cell_index, node->location_index) + node->cur_edge;
+		offset = graph->layout->get_node_shift_vector(node->cell_index, node->location_index) + node->cur_edge;
+		sister = graph->layout->get_sister_edges(node->cell_index) + node->cur_edge;
+		block_edge = graph->layout->get_block_edge(node->cell_index, node->location_index) + node->cur_edge;
 
 		// For all neighbors
 		while (true)
@@ -832,16 +833,16 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::RegionWor
 				// Relabel the node if possible
 				if (can_relabel && relabel(node))
 				{
-					if (node->distance == Layout::NODE_COUNT)
+					if (node->distance == graph->layout->node_count)
 					{
 						list.remove(cur_block->cur_node);
 						break;
 					}
 
 					residual = node->residual + node->cur_edge;
-					offset = Layout::get_node_shift_vector(node->cell_index, node->location_index) + node->cur_edge;
-					sister = Layout::get_sister_edges(node->cell_index) + node->cur_edge;
-					block_edge = Layout::get_block_edge(node->cell_index, node->location_index) + node->cur_edge;
+					offset = graph->layout->get_node_shift_vector(node->cell_index, node->location_index) + node->cur_edge;
+					sister = graph->layout->get_sister_edges(node->cell_index) + node->cur_edge;
+					block_edge = graph->layout->get_block_edge(node->cell_index, node->location_index) + node->cur_edge;
 				}
 				else
 				{
@@ -940,7 +941,7 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::RegionWor
 		region_discharges += block->discharges;
 
 		size_t gap_distance = graph->gaps[block->id];
-		if (gap_distance == Layout::NODE_COUNT)
+		if (gap_distance == graph->layout->node_count)
 			continue;
 
 		// Clean up the active list
@@ -950,7 +951,7 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::RegionWor
 			node = &block->nodes[list.get(iter)];
 			if (node->distance > gap_distance)
 			{
-				node->distance = Layout::NODE_COUNT;
+				node->distance = graph->layout->node_count;
 				list.remove(iter);
 			}
 			else
@@ -961,12 +962,12 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::RegionWor
 		node = block->nodes;
 		for (size_t j = 0; j < Layout::NODES_PER_BLOCK; j++)
 		{
-			if (node->distance != Layout::NODE_COUNT && node->distance > gap_distance)
-				node->distance = Layout::NODE_COUNT;
+			if (node->distance != graph->layout->node_count && node->distance > gap_distance)
+				node->distance = graph->layout->node_count;
 			node++;
 		}
 
-		graph->gaps[block->id] = Layout::NODE_COUNT;
+		graph->gaps[block->id] = graph->layout->node_count;
 	}
 }
 

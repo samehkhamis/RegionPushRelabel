@@ -147,15 +147,6 @@ struct all_equal_count :
 		mp::push_back<mp::_1, equal_count<Numbers, mp::_2> > >::type {};
 
 
-// Static assert helper
-template <typename Dimensions, typename BlockDimensions>
-struct must_be_true :
-	public mp::equal_to<
-		typename sum<
-			typename mp::transform<Dimensions, BlockDimensions, mp::modulus<mp::_1, mp::_2> >::type>::type,
-		mp::int_<0> >::type {};
-
-
 // Hiding mpl from the interface
 class ThreadCountTag {};
 template <size_t X> class ThreadCount : public mp::int_<X>, public ThreadCountTag {};

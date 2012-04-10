@@ -10,8 +10,8 @@
 
 #include "Layout.h"
 
-template <typename OffsetVector, typename Dimensions, typename BlockDimensions>
-void Layout<OffsetVector, Dimensions, BlockDimensions>::init()
+template <typename OffsetVector, typename BlockDimensions>
+void Layout<OffsetVector, BlockDimensions>::init()
 {
 	// Check if class is already initialized
 	if (initialized)
@@ -19,9 +19,7 @@ void Layout<OffsetVector, Dimensions, BlockDimensions>::init()
 
 	initialized = true;
 
-	sizes[0] = NODES_PER_CELL;
-	mpl::for_each<Dimensions>(CollectIntegers(sizes + 1));
-
+	// Collect block dimensions
 	block_dimensions[0] = NODES_PER_CELL;
 	mpl::for_each<BlockDimensions>(CollectIntegers(block_dimensions + 1));
 
@@ -68,6 +66,25 @@ void Layout<OffsetVector, Dimensions, BlockDimensions>::init()
 			}
 		}
 	}
+}
+
+template <typename OffsetVector, typename BlockDimensions>
+Layout<OffsetVector, BlockDimensions>::Layout(long dimensions[])
+{
+	Layout::init();
+
+	// Read in dimensions and calculate node count
+	sizes[0] = NODES_PER_CELL;
+	node_count = NODES_PER_CELL;
+	for (size_t i = 1; i < DIM_COUNT; i++)
+	{
+		sizes[i] = ceil((double)dimensions[i - 1] / block_dimensions[i - 1]) * block_dimensions[i - 1];
+		node_count *=  sizes[i];
+
+		// Warning: block dimension did not divide graph dimension
+		if (sizes[i] != dimensions[i - 1])
+			cout << "Warning: block dimension did not divide graph dimension! Be careful with the node ID calculations." << endl;
+	}
 
 	// Compute blocks per dimension and total block count
 	block_count = 1;
@@ -108,16 +125,16 @@ void Layout<OffsetVector, Dimensions, BlockDimensions>::init()
 	compute_node_edge_masks(block_edge, location_counts, node_edge_mask);
 }
 
-template <typename OffsetVector, typename Dimensions, typename BlockDimensions>
-void Layout<OffsetVector, Dimensions, BlockDimensions>::compute_strides(ptrdiff_t sizes[], size_t strides[])
+template <typename OffsetVector, typename BlockDimensions>
+void Layout<OffsetVector, BlockDimensions>::compute_strides(ptrdiff_t sizes[], size_t strides[])
 {
 	strides[0] = 1;
 	for (size_t i = 1; i < DIM_COUNT; i++)
 		strides[i] = sizes[i - 1] * strides[i - 1];
 }
 
-template <typename OffsetVector, typename Dimensions, typename BlockDimensions>
-void Layout<OffsetVector, Dimensions, BlockDimensions>::compute_node_edge_masks(
+template <typename OffsetVector, typename BlockDimensions>
+void Layout<OffsetVector, BlockDimensions>::compute_node_edge_masks(
 	vector<vector<ptrdiff_t> > block_edge[], size_t location_counts[],
 	vector<vector<ptrdiff_t> > node_edge_mask[])
 {
@@ -142,8 +159,8 @@ void Layout<OffsetVector, Dimensions, BlockDimensions>::compute_node_edge_masks(
 	}
 }
 
-template <typename OffsetVector, typename Dimensions, typename BlockDimensions>
-void Layout<OffsetVector, Dimensions, BlockDimensions>::compute_block_edges(
+template <typename OffsetVector, typename BlockDimensions>
+void Layout<OffsetVector, BlockDimensions>::compute_block_edges(
 	ptrdiff_t shift_sizes[], vector<ptrdiff_t> offsets[], size_t offset_strides[],
 	vector<size_t> ranges[], size_t location_count,
 	vector<ptrdiff_t> block_offsets[], vector<vector<ptrdiff_t> >& block_edge)
@@ -198,8 +215,8 @@ void Layout<OffsetVector, Dimensions, BlockDimensions>::compute_block_edges(
 	}
 }
 
-template <typename OffsetVector, typename Dimensions, typename BlockDimensions>
-size_t Layout<OffsetVector, Dimensions, BlockDimensions>::compute_offset_lut(
+template <typename OffsetVector, typename BlockDimensions>
+size_t Layout<OffsetVector, BlockDimensions>::compute_offset_lut(
 	ptrdiff_t shift_sizes[], size_t shift_strides[],
 	vector<ptrdiff_t> offsets[], size_t offset_strides[],
 	vector<size_t> ranges[], vector<vector<ptrdiff_t> >& shifts)
@@ -281,8 +298,8 @@ size_t Layout<OffsetVector, Dimensions, BlockDimensions>::compute_offset_lut(
 	return location_count;
 }
 
-template <typename OffsetVector, typename Dimensions, typename BlockDimensions>
-unsigned long Layout<OffsetVector, Dimensions, BlockDimensions>::get_boundary_membership(Coord& coord)
+template <typename OffsetVector, typename BlockDimensions>
+unsigned long Layout<OffsetVector, BlockDimensions>::get_boundary_membership(Coord& coord)
 {
 	// Return boundary membership from node coordinates for each node edge
 	unsigned long boundary = 0;
@@ -305,8 +322,8 @@ unsigned long Layout<OffsetVector, Dimensions, BlockDimensions>::get_boundary_me
 	return boundary;
 }
 
-template <typename OffsetVector, typename Dimensions, typename BlockDimensions>
-unsigned short Layout<OffsetVector, Dimensions, BlockDimensions>::get_location_index(Coord& coord, size_t offset_strides[], vector<size_t> ranges[])
+template <typename OffsetVector, typename BlockDimensions>
+unsigned short Layout<OffsetVector, BlockDimensions>::get_location_index(Coord& coord, size_t offset_strides[], vector<size_t> ranges[])
 {
 	// Return offset index from coordinates
 	unsigned short index = 0;
@@ -322,21 +339,21 @@ unsigned short Layout<OffsetVector, Dimensions, BlockDimensions>::get_location_i
 	return index;
 }
 
-template <typename OffsetVector, typename Dimensions, typename BlockDimensions>
-unsigned short Layout<OffsetVector, Dimensions, BlockDimensions>::get_block_location_index(Coord& coord)
+template <typename OffsetVector, typename BlockDimensions>
+unsigned short Layout<OffsetVector, BlockDimensions>::get_block_location_index(Coord& coord)
 {
 	return get_location_index(coord, block_offset_strides, block_ranges);
 }
 
-template <typename OffsetVector, typename Dimensions, typename BlockDimensions>
-unsigned short Layout<OffsetVector, Dimensions, BlockDimensions>::get_node_location_index(Coord& coord)
+template <typename OffsetVector, typename BlockDimensions>
+unsigned short Layout<OffsetVector, BlockDimensions>::get_node_location_index(Coord& coord)
 {
 	size_t c = coord[0];
 	return get_location_index(coord, offset_strides[c], ranges[c]);
 }
 
-template <typename OffsetVector, typename Dimensions, typename BlockDimensions>
-void Layout<OffsetVector, Dimensions, BlockDimensions>::get_block_coord(size_t block_id, Coord& coord)
+template <typename OffsetVector, typename BlockDimensions>
+void Layout<OffsetVector, BlockDimensions>::get_block_coord(size_t block_id, Coord& coord)
 {
 	for (ptrdiff_t d = DIM_COUNT - 1; d >= 0; d--)
 	{
@@ -346,8 +363,8 @@ void Layout<OffsetVector, Dimensions, BlockDimensions>::get_block_coord(size_t b
 }
 
 
-template <typename OffsetVector, typename Dimensions, typename BlockDimensions>
-void Layout<OffsetVector, Dimensions, BlockDimensions>::get_node_coord(size_t block_id, size_t node_subid, Coord& coord)
+template <typename OffsetVector, typename BlockDimensions>
+void Layout<OffsetVector, BlockDimensions>::get_node_coord(size_t block_id, size_t node_subid, Coord& coord)
 {
 	for (ptrdiff_t d = DIM_COUNT - 1; d >= 0; d--)
 	{
@@ -356,8 +373,8 @@ void Layout<OffsetVector, Dimensions, BlockDimensions>::get_node_coord(size_t bl
 	}
 }
 
-template <typename OffsetVector, typename Dimensions, typename BlockDimensions>
-void Layout<OffsetVector, Dimensions, BlockDimensions>::get_node_block_index(size_t node_id, size_t& block_id, size_t& node_subid)
+template <typename OffsetVector, typename BlockDimensions>
+void Layout<OffsetVector, BlockDimensions>::get_node_block_index(size_t node_id, size_t& block_id, size_t& node_subid)
 {
 	// Get the id of the block that a node belongs to and its index in that block
 	block_id = 0;

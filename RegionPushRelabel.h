@@ -87,7 +87,6 @@ private:
 	static const size_t BUCKET_DENSITY_BITS = log_n<BUCKET_DENSITY, 2>::value;
 
 	// More constants
-	static const size_t BUCKET_COUNT = (Layout::NODE_COUNT + BUCKET_DENSITY - 1) >> BUCKET_DENSITY_BITS;
 	static const size_t MAX_RELABELS_PER_BLOCK = max_of<Layout::NODES_PER_BLOCK, DISCHARGES_PER_BLOCK>::value;
 	static const size_t LOCAL_WORK_THRESHOLD = MAX_BLOCKS_PER_REGION * DISCHARGES_PER_BLOCK * GLOBAL_UPDATE_FREQUENCY;
 
@@ -106,7 +105,7 @@ private:
 		unsigned long boundary; // bits = Layout::block_edge_count
 		bool relabel;
 
-		bool is_active() { return preflow > 0 && distance < Layout::NODE_COUNT; }
+		bool is_active() { return preflow > 0 && distance < layout->node_count; }
 	};
 
 	typedef FixedArray<unsigned, Layout::NODES_PER_BLOCK> ActiveList;
@@ -198,11 +197,13 @@ private:
 	size_t max_bucket;
 
 	// Main variables
+	Layout* layout;
 	MemoryManager* memory;
 	char* block_owner;
 	unsigned short* block_location_index;
 	RegionWorker* workers[THREAD_COUNT];
 	FlowType flow;
+	size_t bucket_count;
 
 	// Functions
 	void update_data_sync(RegionWorker& worker);
@@ -218,7 +219,7 @@ private:
 	void unload_block(size_t i);
 
 public:
-	RegionPushRelabel(size_t unused_nnodes = 0, size_t unused_nedges = 0);
+	RegionPushRelabel(long dimensions[]);
 	~RegionPushRelabel();
 
 	void add_node(size_t unused_nnodes);
@@ -230,7 +231,6 @@ public:
 	void add_constant_to_flow(CapType amount);
 	int get_segment(size_t id);
 };
-
 
 // Inline functions
 template <typename CapType, typename FlowType, typename A0, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6>
@@ -255,7 +255,7 @@ template <typename CapType, typename FlowType, typename A0, typename A1, typenam
 INLINE int RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::get_segment(size_t id)
 {
 	size_t bi, ni;
-	Layout::get_node_block_index(id, bi, ni);
+	layout->get_node_block_index(id, bi, ni);
 	Node& node = load_block(bi)->nodes[ni];
 	int segment = ((node.distance) < (gaps[bi])) ? 1 : 0;
 	unload_block(bi);

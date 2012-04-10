@@ -20,47 +20,56 @@ typedef RegionPushRelabel<
 	short, long,               // Capacity Type, Flow Type
 	Layout<
 		FourConnected,         // Layout is four-connected
-		Dimensions<4, 4>,      // The graph is 4x4 cells
-		BlockDimensions<2, 2>  // Divide the graph into blocks of 2x2 cells each
+		BlockDimensions<3, 3>  // Divide the graph into blocks of 3x3 cells each
 	>,
 	ThreadCount<2>             // Use two threads
 > RegularGraph;
 
 int main()
 {
-	RegularGraph *g = new RegularGraph();
+	// Even though the graph is 4x4, we allocate 6x6 nodes to have
+	// a graph of dimensions that divide the block dimensions
+	long d[] = {6, 6};
+	RegularGraph *g = new RegularGraph(d);
+
+	// I am calculating the node index dynamically since the node
+	// index depends on the actual graph size (6x6), not the original
+	// size (4x4)
+	#define ID(i, j) (d[1] * (i) + (j))
 	
-	g->add_terminal_weights(0, 100, 0);  // Node 0 is connected to source
-	g->add_terminal_weights(15, 0, 100); // and node 15 to sink
+	g->add_terminal_weights(ID(0, 0), 100, 0);    // Node (0, 0) is connected to source
+	g->add_terminal_weights(ID(3, 3), 0, 100);    // and node (3, 3) to sink
 	
-	g->add_edge(0, 1, 5, 0);             // Edge capacities from node 0 to 1 and vice versa
-	g->add_edge(0, 4, 5, 0);             // etc.
-	g->add_edge(1, 2, 1, 0);
-	g->add_edge(1, 5, 5, 0);
-	g->add_edge(2, 3, 5, 0);
-	g->add_edge(2, 6, 5, 0);
-	g->add_edge(3, 7, 5, 0);
-	g->add_edge(4, 5, 5, 0);
-	g->add_edge(4, 8, 5, 0);
-	g->add_edge(5, 6, 2, 0);
-	g->add_edge(5, 9, 5, 0);
-	g->add_edge(6, 7, 5, 0);
-	g->add_edge(6, 10, 5, 0);
-	g->add_edge(7, 11, 5, 0);
-	g->add_edge(8, 12, 5, 0);
-	g->add_edge(9, 13, 5, 0);
-	g->add_edge(10, 11, 5, 0);
-	g->add_edge(10, 14, 5, 0);
-	g->add_edge(11, 15, 5, 0);
-	g->add_edge(12, 13, 5, 0);
-	g->add_edge(13, 14, 3, 0);
-	g->add_edge(14, 15, 5, 0);
+	g->add_edge(ID(0, 0), ID(0, 1), 5, 0);        // Edge capacities from node 0 to 1 and vice versa
+	g->add_edge(ID(0, 0), ID(1, 0), 5, 0);        // etc.
+	g->add_edge(ID(0, 1), ID(0, 2), 1, 0);
+	g->add_edge(ID(0, 1), ID(1, 1), 5, 0);
+	g->add_edge(ID(0, 2), ID(0, 3), 5, 0);
+	g->add_edge(ID(0, 2), ID(1, 2), 5, 0);
+	g->add_edge(ID(0, 3), ID(1, 3), 5, 0);
+	g->add_edge(ID(1, 0), ID(1, 1), 5, 0);
+	g->add_edge(ID(1, 0), ID(2, 0), 5, 0);
+	g->add_edge(ID(1, 1), ID(1, 2), 2, 0);
+	g->add_edge(ID(1, 1), ID(2, 1), 5, 0);
+	g->add_edge(ID(1, 2), ID(1, 3), 5, 0);
+	g->add_edge(ID(1, 2), ID(2, 2), 5, 0);
+	g->add_edge(ID(1, 3), ID(2, 3), 5, 0);
+	g->add_edge(ID(2, 0), ID(3, 0), 5, 0);
+	g->add_edge(ID(2, 1), ID(3, 1), 5, 0);
+	g->add_edge(ID(2, 2), ID(2, 3), 5, 0);
+	g->add_edge(ID(2, 2), ID(3, 2), 5, 0);
+	g->add_edge(ID(2, 3), ID(3, 3), 5, 0);
+	g->add_edge(ID(3, 0), ID(3, 1), 5, 0);
+	g->add_edge(ID(3, 1), ID(3, 2), 3, 0);
+	g->add_edge(ID(3, 2), ID(3, 3), 5, 0);
 	
 	g->compute_maxflow();
 	cout << "Flow = " << g->get_flow() << endl;
-	for (int i = 0; i < 16; i++)
-		cout << "Segment of node " << i << " = " << g->get_segment(i) << endl;
+	for (int i = 0; i < 4; i++)
+		for (int j = 0; j < 4; j++)
+			cout << "Segment of node (" << i << ", " << j << ") = " << g->get_segment(ID(i, j)) << endl;
 	
 	delete g;
+	cin.ignore();
 	return 0;
 }
