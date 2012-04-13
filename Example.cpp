@@ -65,6 +65,8 @@ int main()
 	
 	g->compute_maxflow();
 	cout << "Flow = " << g->get_flow() << endl;
+	
+	// Loop through the 4x4 subgraph that we actually care about
 	for (int i = 0; i < 4; i++)
 		for (int j = 0; j < 4; j++)
 			cout << "Segment of node (" << i << ", " << j << ") = " << g->get_segment(ID(i, j)) << endl;
