@@ -107,16 +107,18 @@ The bundled DimacsReader template class can also be used to compute a maximum fl
 on graphs in the DIMACS format. For example, to read in the graph above
 from a DIMACS file, you need to first include "DimacsReader.h".
 
-#include "RegionPushRelabel/DimacsReader.h"
+#include "DimacsReader.h"
 
 Then you need to define your graph class as shown above, and create a DimacsReader
 template class with your graph class as the template parameter.
 
 typedef DimacsReader<RegularGraph> Reader;
 
-And finally you can use your graph to read in the graph from a file.
+And finally you can use your reader to read in the graph from a DIMACS file.
+The graph dimensions must be passed in the second constructor argument.
 
-Reader reader("graph.max");
+long dimensions[] = {256, 256, 256};
+Reader reader("graph.max", dimensions);
 reader.parse();
 RegularGraph* g = reader.get_solver();
 g->compute_maxflow();

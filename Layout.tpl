@@ -74,16 +74,22 @@ Layout<OffsetVector, BlockDimensions>::Layout(long dimensions[])
 	Layout::init();
 
 	// Read in dimensions and calculate node count
+	sizes_changed = false;
+	original_sizes[0] = NODES_PER_CELL;
 	sizes[0] = NODES_PER_CELL;
 	node_count = NODES_PER_CELL;
 	for (size_t i = 1; i < DIM_COUNT; i++)
 	{
-		sizes[i] = ceil((double)dimensions[i - 1] / block_dimensions[i - 1]) * block_dimensions[i - 1];
+		original_sizes[i] = dimensions[i - 1];
+		sizes[i] = ceil((double)dimensions[i - 1] / block_dimensions[i]) * block_dimensions[i];
 		node_count *=  sizes[i];
 
 		// Warning: block dimension did not divide graph dimension
 		if (sizes[i] != dimensions[i - 1])
-			cout << "Warning: block dimension did not divide graph dimension! Be careful with the node ID calculations." << endl;
+		{
+			sizes_changed = true;
+			//cout << "Warning: block dimension did not divide graph dimension! Be careful with the node ID calculations." << endl;
+		}
 	}
 
 	// Compute blocks per dimension and total block count
@@ -97,6 +103,7 @@ Layout<OffsetVector, BlockDimensions>::Layout(long dimensions[])
 	}
 
 	// Compute strides
+	compute_strides(original_sizes, original_size_strides);
 	compute_strides(sizes, size_strides);
 	compute_strides(blocks_per_dim, block_strides);
 	compute_strides(block_dimensions, block_dimension_strides);
@@ -388,6 +395,24 @@ void Layout<OffsetVector, BlockDimensions>::get_node_block_index(size_t node_id,
 		block_id += pos / block_dimensions[d] * block_strides[d];
 		node_subid += pos % block_dimensions[d] * block_dimension_strides[d];
 	}
+}
+
+template <typename OffsetVector, typename BlockDimensions>
+size_t Layout<OffsetVector, BlockDimensions>::get_node_id(size_t node_id)
+{
+	// Recalculate the node index using the new grid dimensions
+	if (!sizes_changed)
+		return node_id;
+
+	size_t new_node_id = 0;
+	size_t pos;
+	for (ptrdiff_t d = DIM_COUNT - 1; d >= 0; d--)
+	{
+		pos = node_id / original_size_strides[d];
+		node_id -= pos * original_size_strides[d];
+		new_node_id += pos * size_strides[d];
+	}
+	return new_node_id;
 }
 
 #endif

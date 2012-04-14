@@ -9,9 +9,10 @@
 #include "DimacsReader.h"
 
 template <typename Solver>
-DimacsReader<Solver>::DimacsReader(string filename)
+DimacsReader<Solver>::DimacsReader(string filename, long* sizes)
 {
 	file.open(filename, 8*1024*1024); // 8 MB
+	dims = sizes;
 	solver = NULL;
 }
 
@@ -22,13 +23,13 @@ DimacsReader<Solver>::~DimacsReader()
 	handle_destruction();
 }
 
-
 template <typename Solver>
 inline void DimacsReader<Solver>::handle_construction(IdType nnodes, IdType nedges)
 {
 	if (solver == NULL)
 	{
-		solver = new Solver(nnodes, nedges);
+		//solver = new Solver(nnodes, nedges);
+		solver = new Solver(dims);
 		solver->add_node(nnodes);
 	}
 }
@@ -36,8 +37,11 @@ inline void DimacsReader<Solver>::handle_construction(IdType nnodes, IdType nedg
 template <typename Solver>
 inline void DimacsReader<Solver>::handle_destruction()
 {
-	delete solver;
-	solver = NULL;
+	if (solver != NULL)
+	{
+		delete solver;
+		solver = NULL;
+	}
 }
 
 template <typename Solver>

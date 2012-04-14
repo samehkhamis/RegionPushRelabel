@@ -80,6 +80,7 @@ public:
 
 	void get_node_coord(size_t block_id, size_t node_subid, Coord& coord);
 	void get_block_coord(size_t block_id, Coord& coord);
+	size_t get_node_id(size_t node_id);
 
 private:
 	// Static variables
@@ -93,8 +94,11 @@ private:
 	vector<vector<ptrdiff_t> > node_edge_mask[NODES_PER_CELL];
 
 	// Node shift calculation
+	bool sizes_changed;
+	ptrdiff_t original_sizes[DIM_COUNT];
 	ptrdiff_t sizes[DIM_COUNT];
 	size_t block_dimension_strides[DIM_COUNT];
+	size_t original_size_strides[DIM_COUNT];
 	size_t size_strides[DIM_COUNT];
 	size_t offset_strides[NODES_PER_CELL][DIM_COUNT];
 	vector<size_t> ranges[NODES_PER_CELL][DIM_COUNT];

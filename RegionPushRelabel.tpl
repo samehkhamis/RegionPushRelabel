@@ -139,6 +139,9 @@ INLINE void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::po
 template <typename CapType, typename FlowType, typename A0, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6>
 INLINE void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::add_edge(size_t node_i, size_t node_j, CapType cap, CapType rev_cap)
 {
+	node_i = layout->get_node_id(node_i);
+	node_j = layout->get_node_id(node_j);
+
 	size_t block_i, node_subi, block_j, node_subj;
 	layout->get_node_block_index(node_i, block_i, node_subi);
 	layout->get_node_block_index(node_j, block_j, node_subj);
@@ -177,6 +180,8 @@ INLINE void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::ad
 template <typename CapType, typename FlowType, typename A0, typename A1, typename A2, typename A3, typename A4, typename A5, typename A6>
 INLINE void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::add_terminal_weights(size_t node_id, FlowType src_cap, FlowType snk_cap)
 {
+	node_id = layout->get_node_id(node_id);
+
 	size_t block_id, node_subid;
 	layout->get_node_block_index(node_id, block_id, node_subid);
 

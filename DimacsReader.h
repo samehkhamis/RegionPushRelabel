@@ -28,6 +28,7 @@ private:
 
 	Solver* solver;
 	IdType prev_from, prev_to;
+	long* dims;
 	CapType prev_cap;
 	stream<file_source> file;
 
@@ -41,7 +42,7 @@ protected:
 	void handle_source_sink_edge(CapType cap); // can only increase the flow by cap
 
 public:
-	DimacsReader(string filename);
+	DimacsReader(string filename, long* sizes = NULL);
 	~DimacsReader();
 
 	bool parse();
