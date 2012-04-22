@@ -1,6 +1,6 @@
 ******************************************************************
 *                                                                *
-*    RegionPushRelabel - Version 1.06                            *
+*    RegionPushRelabel - Version 1.07                            *
 *       A parallel out-of-core cache-oblivious FIFO push-relabel *
 *       algorithm for graphs with a regular structure.           *
 *    http://vision.csd.uwo.ca/code/                              *
@@ -53,6 +53,7 @@ http://www.boost.org/doc/libs/1_38_0/more/getting_started/windows.html
 
 3. Revision history
 
+v1.07 - better parameter default values
 v1.06 - graph size can be runtime-specified and is no longer required
         to be a multiple of the block size, example problem fixed
 v1.05 - gcc incompatibility fix (thanks to Matt Gibson)
@@ -130,22 +131,16 @@ Note: you should NOT delete the RegularGraph object returned by get_solver.
 
 5. Additional notes.
 
-= The Layout class requires 3 parameters: the offset array, the graph dimensions, and the block dimensions.
+= The Layout class requires 2 parameters: the offset array and the block dimensions.
 
 *** The offset array is a Boost MPL vector. For arrays with 50 arcs or less, you can use the type Array as shown
 in the example above. If you need more than 50 arcs, you should replace Array with mpl::vectorN, with N being
 the number of arcs, and include the appropriate header file. For example, vector30.hpp contains mpl::vector24.
 
-*** The graph dimensions can be specified using the class Dimensions. For example, the 2D graph shown above is
-described by its width and height.
-
-*** The block dimensions has the same format as the graph dimensions, but uses the class BlockDimensions. Two
-limitations exist on the block dimensions:
-1. each block dimension must divide evenly the corresponding graph dimensions, which implies that all blocks,
-including the last one, are of the same size exactly.
-2. each block dimension must be greater than the largest absolute edge offset in that dimension. This implies
-that the majority of nodes in a block will only be connected to nodes in the same block, improving the locality
-and allowing per-block processing.
+*** The block dimensions can be specified using the class BlockDimensions. One limitation exists on the block
+dimensions; each block dimension must be greater than the largest absolute edge offset in that dimension. This
+implies that the majority of nodes in a block will only be connected to nodes in the same block, improving the
+locality and allowing per-block processing.
 
 
 = The RegionPushRelabel class requires 2 positional parameters, capacity type and flow type, followed by

@@ -58,13 +58,6 @@ typedef param::parameters<
 	param::optional<param::deduced<tag::param_global_update_frequency>, is_base_and_derived<GlobalUpdateFrequencyTag, mpl::_> >
 > RegionPushRelabelParameters;
 
-typedef ThreadCount<1> DefaultThreadCount;
-typedef MaxBlocksPerRegion<8> DefaultMaxBlocksPerRegion;
-typedef DischargesPerBlock<15000> DefaultDischargesPerBlock;
-typedef BucketDensity<1> DefaultBucketDensity;
-typedef BlocksPerMemoryPage<50> DefaultBlocksPerMemoryPage;
-typedef GlobalUpdateFrequency<200> DefaultGlobalUpdateFrequency;
-
 // Grid Push Relabel class
 template <typename CapType, typename FlowType,
 	typename A0 = param::void_, typename A1 = param::void_, typename A2 = param::void_,
@@ -78,15 +71,26 @@ private:
 
 	typedef typename param::binding<Arguments, tag::param_layout>::type Layout;
 
+	typedef ThreadCount<1> DefaultThreadCount;
 	static const char THREAD_COUNT = (char)param::binding<Arguments, tag::param_thread_count, DefaultThreadCount>::type::value;
+
+	typedef MaxBlocksPerRegion<mpl::size<typename Layout::OffsetVector_>::value + 1> DefaultMaxBlocksPerRegion;
 	static const size_t MAX_BLOCKS_PER_REGION = param::binding<Arguments, tag::param_max_blocks_per_region, DefaultMaxBlocksPerRegion>::type::value;
+
+	typedef DischargesPerBlock<0.5 * Layout::NODES_PER_BLOCK * MAX_BLOCKS_PER_REGION> DefaultDischargesPerBlock;
 	static const size_t DISCHARGES_PER_BLOCK = param::binding<Arguments, tag::param_discharges_per_block, DefaultDischargesPerBlock>::type::value;
+
+	typedef BucketDensity<1> DefaultBucketDensity;
 	static const size_t BUCKET_DENSITY = param::binding<Arguments, tag::param_bucket_density, DefaultBucketDensity>::type::value;
+
+	typedef BlocksPerMemoryPage<50> DefaultBlocksPerMemoryPage;
 	static const unsigned BLOCKS_PER_MEMORY_PAGE = (unsigned)param::binding<Arguments, tag::param_blocks_per_memory_page, DefaultBlocksPerMemoryPage>::type::value;
+
+	typedef GlobalUpdateFrequency<200> DefaultGlobalUpdateFrequency;
 	static const size_t GLOBAL_UPDATE_FREQUENCY = param::binding<Arguments, tag::param_global_update_frequency, DefaultGlobalUpdateFrequency>::type::value;
-	static const size_t BUCKET_DENSITY_BITS = log_n<BUCKET_DENSITY, 2>::value;
 
 	// More constants
+	static const size_t BUCKET_DENSITY_BITS = log_n<BUCKET_DENSITY, 2>::value;
 	static const size_t MAX_RELABELS_PER_BLOCK = max_of<Layout::NODES_PER_BLOCK, DISCHARGES_PER_BLOCK>::value;
 	static const size_t LOCAL_WORK_THRESHOLD = MAX_BLOCKS_PER_REGION * DISCHARGES_PER_BLOCK * GLOBAL_UPDATE_FREQUENCY;
 

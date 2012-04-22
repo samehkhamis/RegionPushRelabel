@@ -170,7 +170,7 @@ INLINE void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::ad
 	else
 	{
 		// Unexpected: non-grid edge - will be ignored!
-		cout << "Warning: non-grid edge detected! Layout definition problem?" << endl;
+		//cout << "Warning: non-grid edge detected! Layout definition problem?" << endl;
 	}
 
 	unload_block(block_i);
@@ -251,8 +251,8 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::update_re
 	// Make sure that this block is not neighboring any other reserved block to avoid "livelock" situations
 	size_t block_id;
 
-	unsigned active_index, active_count = active->get_count();
-	for (active_index = 0; active_index < active_count; active_index++)
+	unsigned active_index, active_max = active->get_count();
+	for (active_index = 0; active_index < active_max; active_index++)
 	{
 		block_id = active->pop_front();
 
@@ -269,7 +269,7 @@ void RegionPushRelabel<CapType, FlowType, A0, A1, A2, A3, A4, A5, A6>::update_re
 	}
 
 	// No block matches the criteria, this thread can now sleep
-	if (active_index == active_count)
+	if (active_index == active_max)
 		return;
 
 	// Start reserving the neighbors of that first block

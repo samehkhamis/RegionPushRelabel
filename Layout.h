@@ -23,8 +23,8 @@ using namespace std;
 
 #include "CompileTimeUtils.h"
 
-// Use Array to initialize an array of arcs, which just wraps mpl::vector
-// If you need more than 50 arcs, you will have to directly use mpl::vectorN instead of Array,
+// Use Array to initialize an array of arcs, which just wraps mp::vector
+// If you need more than 50 arcs, you will have to directly use mp::vectorN instead of Array,
 // where N is the number of arcs you need. You will also need to include "boost/mpl/vector/vectorM.hpp"
 // where M is N rounded up to the next ten (e.g, vector30.hpp to use the vector24 template)
 
@@ -39,9 +39,9 @@ public:
 	typedef all_equal_count<all_from<OffsetVector> > FromCountVector;
 
 	// Static constants
-	static const size_t DIM_COUNT = mpl::size<typename mpl::at_c<OffsetVector, 0>::type::Offset>::value + 1;
-	static const size_t NODE_EDGE_COUNT = mpl::max_element<FromCountVector>::type::type::value;
-	static const size_t NODES_PER_CELL = mpl::size<FromCountVector>::value;
+	static const size_t DIM_COUNT = mp::size<typename mp::at_c<OffsetVector, 0>::type::Offset>::value + 1;
+	static const size_t NODE_EDGE_COUNT = mp::max_element<FromCountVector>::type::type::value;
+	static const size_t NODES_PER_CELL = mp::size<FromCountVector>::value;
 	static const size_t NODES_PER_BLOCK = NODES_PER_CELL * product<BlockDimensions>::value;
 
 	// Static variables
