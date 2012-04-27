@@ -77,7 +77,7 @@ private:
 	typedef MaxBlocksPerRegion<mpl::size<typename Layout::OffsetVector_>::value + 1> DefaultMaxBlocksPerRegion;
 	static const size_t MAX_BLOCKS_PER_REGION = param::binding<Arguments, tag::param_max_blocks_per_region, DefaultMaxBlocksPerRegion>::type::value;
 
-	typedef DischargesPerBlock<0.5 * Layout::NODES_PER_BLOCK * MAX_BLOCKS_PER_REGION> DefaultDischargesPerBlock;
+	typedef DischargesPerBlock<static_cast<long unsigned int>(0.5 * Layout::NODES_PER_BLOCK * MAX_BLOCKS_PER_REGION)> DefaultDischargesPerBlock;
 	static const size_t DISCHARGES_PER_BLOCK = param::binding<Arguments, tag::param_discharges_per_block, DefaultDischargesPerBlock>::type::value;
 
 	typedef BucketDensity<1> DefaultBucketDensity;
